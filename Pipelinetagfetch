@@ -1,0 +1,44 @@
+pipeline {
+    agent any
+    stages {
+        stage('Increment Tag Version') {
+            steps {
+                script {
+                    // Define your Git repository URL and the desired version part to increment
+                    def gitRepoUrl = 'https://github.com/your_username/your_repository.git'
+                    def versionPart = 'patch' // Options: 'major', 'minor', 'patch'
+
+                    // Clone the repository and fetch tags
+                    sh "git clone ${gitRepoUrl} my_repo"
+                    dir('my_repo') {
+                        sh 'git fetch --tags'
+
+                        // Get the latest tag name
+                        def currentTag = sh(script: 'git describe --tags --abbrev=0', returnStdout: true).trim()
+
+                        // Parse the current tag version
+                        def (major, minor, patch) = currentTag.replaceAll('v', '').tokenize('.')
+
+                        // Increment the desired version part
+                        if (versionPart == 'major') {
+                            major = (major.toInteger() + 1).toString()
+                        } else if (versionPart == 'minor') {
+                            minor = (minor.toInteger() + 1).toString()
+                        } else if (versionPart == 'patch') {
+                            patch = (patch.toInteger() + 1).toString()
+                        }
+
+                        // Construct the new tag version
+                        def newTag = "v${major}.${minor}.${patch}"
+
+                        // Create and push the new tag
+                        sh "git tag -a ${newTag} -m 'Version ${newTag}'"
+                        sh "git push origin ${newTag}"
+
+                        echo "New tag version: ${newTag}"
+                    }
+                }
+            }
+        }
+    }
+}
